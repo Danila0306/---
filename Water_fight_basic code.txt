@@ -1,0 +1,152 @@
+//Задание 3. Создайте двухмерный массив.Заполните его
+//случайными числами и покажите на экран.Пользователь
+//выбирает количество сдвигов и положение(влево, впра во, вверх, вниз).Выполнить сдвиг массива и показать на
+//экран полученный результат.Сдвиг циклический.
+//Например, если мы имеем следующий массив
+//1 2 0 4 5 3
+//4 5 3 9 0 1
+//и пользователь выбрал сдвиг на 2 разряда вправо, то мы
+//получим
+//5 3 1 2 0 4
+//0 1 4 5 3 9
+
+/*время реализации поставленной задачи 7 часов
+	создание игрового цикла и вложение задания номер 3 как цель реализации
+
+	ДВИЖЕНИЕ ПРОИСХОДИТ НА СТРЕЛКИ в право ,в лево,в верх ,в низ
+
+
+	Приложение имеет баги
+*/
+
+#include<iostream>
+#include <Windows.h>
+#include<random>
+#include <chrono>
+#include <chrono>
+#include <iostream>
+#include <ratio>
+#include <thread>
+template<std::intmax_t FPS>//класс несёт в себе огромную нагрузку на память и не может быть использован в глобальных целях
+class frame_rater {//класс реализации ФПС
+public:
+	frame_rater() :                 // initialize the object keeping the pace
+		time_between_frames{ 1 },     // std::ratio<1, FPS> seconds
+		tp{ std::chrono::steady_clock::now() }
+	{}
+	void sleep() {
+		// add to time point
+		tp += time_between_frames;
+
+		// and sleep until that time point
+		std::this_thread::sleep_until(tp);
+	}
+private:
+	// a duration with a length of 1/FPS seconds
+	std::chrono::duration<double, std::ratio<1, FPS>> time_between_frames;
+
+	// the time point we'll add to in every loop
+	std::chrono::time_point<std::chrono::steady_clock, decltype(time_between_frames)> tp;
+};
+using namespace std;
+int main() {
+	double lastTime = 0.0;
+	srand(time(NULL));
+	int counter_r = 0;//счётчик строк
+	int counter_c = 0;//счётчик колонок
+	
+	int last_num = 0;//дубликат первого или последнего числа
+	const int row = 10;
+	const int col = 10;
+	int i = 0;//колонки
+	int j = 0;//строки
+	int arr[row][col];//начальный массив
+	int dubl_arr[row][col];//дубликат массива
+
+	for (int i = 0; i < row; i++) {//заполнения массива
+		for (int j = 0; j < col; j++) {
+			arr[i][j] = rand() % 10;//#include<random>
+			dubl_arr[i][j] = arr[i][j];	
+		}	
+	}
+	arr[0][0] = 100;
+	dubl_arr[0][0] = 100;//указываю чтоб было наглядно видно
+	HANDLE s_in = GetStdHandle(STD_INPUT_HANDLE);//стандартный обЪект класса из библиотеки window.h
+	DWORD dr;
+	INPUT_RECORD rec;
+	for (;;) {
+		frame_rater<60> fr; // 60 ФПС для того чтоб кадр не удалялся раньше чем появляется 
+		for (int i = 0; i < row; i++) {//вывод массива на экран
+			for (int j = 0; j < col; j++) {
+				cout << "|  "<<dubl_arr[i][j] << "|  ";
+
+			}
+			cout << endl;
+		}
+		ReadConsoleInput(s_in, &rec, sizeof(INPUT_RECORD), &dr);//функция для активации сборника
+		 FlushConsoleInputBuffer(s_in); //для чтения команд нажатия клавишь
+		
+		if (rec.EventType == KEY_EVENT) {//считать тип нажатия KEY_EVENT
+			if (rec.Event.KeyEvent.bKeyDown) {//при опускании кнопки
+				switch (rec.Event.KeyEvent.wVirtualKeyCode) {
+				case VK_LEFT://движение в лево
+					if (counter_c == 0) { counter_c = row - 1; }//обработчик возможных исключений
+					counter_c--;
+					last_num = dubl_arr[counter_r][0];//копия первой цифры
+					for (j = 1; j < row; j++)
+						dubl_arr[counter_r][j - 1] = arr[counter_r][j];//передвижение в лево с заменой каждой передней на
+																      //заднюю цифру массива arr
+
+					dubl_arr[counter_r][row - 1] = last_num;//использование копии первой цифры
+					
+					for (j = 1; j < row; j++)
+						arr[counter_r][j] = dubl_arr[counter_r][j];//приравнивание дубликата массива к настоящему
+					
+					break;
+				case VK_RIGHT://движение в право
+					if (counter_c == row - 1) { counter_c = 0 ; }//обработчик возможных исключений
+					counter_c++;
+					last_num = dubl_arr[counter_r][row - 1];//копия последней цифры
+					for (j = row - 2; j > -1; j--)
+						dubl_arr[counter_r][j + 1] = arr[counter_r][j];//передвижение в право с заменой каждой задней  на
+																   //переднюю цифру массива arr
+					dubl_arr[counter_r][0] = last_num;//использование копии последней цифры
+					
+					for (j = row - 1; j > -1; j--)
+
+						arr[counter_r][j] = dubl_arr[counter_r][j];//приравнивание дубликата массива к настоящему
+					break;
+				case VK_UP://движение в верх
+					if (counter_r == 0) { counter_r = col - 1; }//обработчик возможных исключений
+					counter_r--;
+					last_num = dubl_arr[0][counter_c];//копия первой цифры
+					for (i = 1; i < col; i++)
+						dubl_arr[i-1][counter_c] = arr[i][counter_c];//передвижение в верх с заменой каждой нижней на
+																	  //верхнюю цифру массива arr
+
+					dubl_arr[col - 1][counter_c] = last_num;//использование копии первой цифры
+
+					for (i = 1; i < col; i++)
+						arr[i][counter_c] = dubl_arr[i][counter_c];//приравнивание дубликата массива к настоящему
+
+					break;
+				case VK_DOWN://движение в вниз
+					if (counter_r == col - 1) { counter_r = 0; }//обработчик возможных исключений
+					counter_r++;
+					last_num = dubl_arr[col - 1][counter_c];//копия последней цифры
+					for (i = col - 2; i > -1; i--)
+						dubl_arr[i+1][counter_c] = arr[i][counter_c];//передвижение в низ с заменой каждой верхней  на
+																   //нижнюю цифру массива arr
+					dubl_arr[0][counter_c] = last_num;//использование копии последней цифры
+
+					for (i = col - 1; i > -1; i--)
+
+						arr[i][counter_c] = dubl_arr[i][counter_c];//приравнивание дубликата массива к настоящему
+					break;
+				}
+			}
+		}
+		fr.sleep();//класс frame_rater 
+		system("cls");//отчистка консоли
+	}
+}
